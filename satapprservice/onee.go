@@ -29,7 +29,7 @@ func gather_vars(p problem) [][2][]int {
 
 func lp_solve(p problem, signs [][2][]int) []float64{
 	lp := glpk.New()
-	defer lp.Delete()
+	// defer lp.Delete()
 	lp.SetObjDir(glpk.MAX)
 
 	lp.AddRows(len(p.clauses))
