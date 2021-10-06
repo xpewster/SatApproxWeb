@@ -1,11 +1,14 @@
 package main
 
 import "fmt"
+import "math/rand"
 import "github.com/lukpank/go-glpk/glpk"
 import "log"
 
 func onee_approximation(p problem) float64 {
-	return lp_solve(p, gather_vars(p))
+	var probabililties = lp_solve(p, gather_vars(p))
+	var values []bool = randomize_values_probability(p, probabililties)
+	return evaluate_clauses(p.clauses, values, p.weights)
 }
 
 /* Compile variables in a clause into an array[clause][pos/neg][vars] 
@@ -15,16 +18,16 @@ func gather_vars(p problem) [][2][]int {
 	for i, _clause := range p.clauses {
 		for _, _var := range _clause {
 			if _var > 0 {
-				signs[i][0] = append(signs[i][0], _var)
+				signs[i][0] = append(signs[i][0], index(p.vars, _var))
 			} else {
-				signs[i][1] = append(signs[i][1], -1*_var)
+				signs[i][1] = append(signs[i][1], index(p.vars, -1*_var))
 			}
 		}
 	}
 	return signs
 }
 
-func lp_solve(p problem, signs [][2][]int) float64{
+func lp_solve(p problem, signs [][2][]int) []float64{
 	lp := glpk.New()
 	defer lp.Delete()
 	lp.SetObjDir(glpk.MAX)
@@ -51,20 +54,28 @@ func lp_solve(p problem, signs [][2][]int) float64{
 	}
 
 	var _size int = (len(p.vars)+len(p.clauses))*len(p.clauses)
-	ia := make([]int32, _size) // row number
-	ja := make([]int32, _size) // col number
-	ar := make([]float64, _size) // coef
+	ia := make([]int32, _size+1) // row number
+	ja := make([]int32, _size+1) // col number
+	ar := make([]float64, _size+1) // coef
 	for i := 0; i < _size; i++ {
 		var clause_num int32 = int32(i/(len(p.vars)+len(p.clauses))+1)
 		var var_num int32 = int32(i%(len(p.vars)+len(p.clauses))+1)
-		ia[i] = clause_num
-		ja[i] = var_num
-		if contains(signs[clause_num-1][0], var_num) {
-			ar[i] = 1.0
-		} else if contains(signs[clause_num-1][1], var_num) {
-			ar[i] = -1.0
+		ia[i+1] = clause_num
+		ja[i+1] = var_num
+		if (int(var_num) <= len(p.vars)) {
+			if contains(signs[clause_num-1][0], var_num-1) {
+				ar[i+1] = 1.0
+			} else if contains(signs[clause_num-1][1], var_num-1) {
+				ar[i+1] = -1.0
+			} else {
+				ar[i+1] = 0.0
+			}
 		} else {
-			ar[i] = 0.0
+			if var_num-int32(len(p.vars)) == clause_num {
+				ar[i+1] = -1.0
+			} else {
+				ar[i+1] = 0.0
+			}
 		}
 	}
 	lp.LoadMatrix(ia, ja, ar)
@@ -74,9 +85,25 @@ func lp_solve(p problem, signs [][2][]int) float64{
 	if err := lp.Simplex(smcp); err != nil {
 		log.Fatal(err)
 	}
-	z := lp.ObjVal()
+	
+	z := make([]float64, len(p.vars))
+	for i, _ := range z {
+		z[i] = lp.ColPrim(i+1)
+	}
+
+	// lp.WriteLP(nil, "test.lp")
+	// fmt.Println(z)
 
 	return z
+}
+
+func randomize_values_probability(p problem, probs []float64) []bool {
+	var values []bool = make([]bool, MAX_VAR+1)
+	for i, v := range p.vars {
+		p := rand.Float64()
+		values[v] = p < probs[i] 
+	}
+	return values
 }
 
 func contains(s []int, e int32) bool {
@@ -86,4 +113,13 @@ func contains(s []int, e int32) bool {
         }
     }
     return false
+}
+
+func index(s []int, e int) int {
+    for i, a := range s {
+        if a == int(e) {
+            return i
+        }
+    }
+    return -1
 }

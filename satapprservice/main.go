@@ -22,9 +22,9 @@ func main() {
 	_weights := []float64{1,1,2+0.1}
 	p := problem{vars: _vars[:], clauses: _clauses, weights: _weights}
 	a := half_approximation(p)
-	// fmt.Printf("half sol: %f\n", a)
+	fmt.Printf("half sol: %f\n", a)
 	b := onee_approximation(p)
-	// fmt.Printf("1-1/e sol: %f\n", b)
+	fmt.Printf("1-1/e sol: %f\n", b)
 	fmt.Println(math.Max(a, b))
 }
 
