@@ -16,4 +16,4 @@
     (testing "parse3"
       (is (= (list or-sym (list or-sym (list not-sym 1) (list and-sym 2 (list not-sym 3))) 4) (parse ex3))))
     (testing "parse4"
-       (is (= (list and-sym (list or-sym (list or-sym "1" "2") "3") "5") (parse ex4))))))
+       (is (= (list and-sym (list or-sym (list or-sym 1 2) 3) 5) (parse ex4))))))

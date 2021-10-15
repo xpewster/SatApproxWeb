@@ -2,9 +2,9 @@
 
 
 (defn str->number [str]
-  (let [n (js/parseInt str)]
-    (if (number? n)
-      n
+  (let [n (re-matches #"\d+" str)]
+    (if n
+      (js/parseInt n 10)
       nil)))
 
 (defn stack
