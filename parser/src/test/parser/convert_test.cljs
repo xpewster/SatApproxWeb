@@ -1,7 +1,7 @@
 (ns parser.parser-test
   (:require [cljs.test :refer [deftest testing is]]
             [parser.parser :refer [and-sym or-sym not-sym implies-sym]]
-            [parser.convert :refer [remove-implies negation-normal distribute]]))
+            [parser.convert :refer [remove-implies negation-normal distribute condense-ors gather]]))
 
 (def ex1 (list implies-sym "p" "q"))
 (def ex2 (list and-sym "p" (list implies-sym (list or-sym (list implies-sym "q" "r") "a") "b")))
@@ -15,6 +15,10 @@
 (def ex8 (list or-sym "p" (list and-sym "q" "r")))
 (def ex9 (list or-sym (list and-sym "q" "r") "p"))
 (def ex10 (list not-sym (list or-sym (list and-sym "p" (list and-sym "q" (list not-sym "r"))) "s")))
+
+(def ex11 (list or-sym (list or-sym "p" "q") "r"))
+(def ex12 (list or-sym "r" (list or-sym "p" "q")))
+(def ex13 (list and-sym (list and-sym (list or-sym "p" (list or-sym (list or-sym "q" "r") "s")) (list or-sym (list not-sym "p") (list not-sym "q"))) (list or-sym "x" "y")))
 
 (deftest tests
   (testing "Convert"
@@ -39,4 +43,12 @@
     (testing "distribute3"
       (is (= (list and-sym (list or-sym "q" "p") (list or-sym "r" "p"))  (distribute ex9))))
     (testing "distribute4"
-      (is (= (list not-sym (list and-sym (list or-sym "p" "s") (list and-sym (list or-sym "q" "s") (list or-sym (list not-sym "r") "s"))))  (distribute ex10))))))
+      (is (= (list not-sym (list and-sym (list or-sym "p" "s") (list and-sym (list or-sym "q" "s") (list or-sym (list not-sym "r") "s"))))  (distribute ex10))))
+    (testing "condense-ors1"
+      (is (= (list "p" "q" "r") (condense-ors ex11))))
+    (testing "condense-ors2"
+      (is (= (list "r" "p" "q") (condense-ors ex12))))
+    (testing "condense-ors3"
+      (is (= (list and-sym (list and-sym (list "p" "q" "r" "s") (list "-p" "-q")) (list "x" "y")) (condense-ors ex13))))
+    (testing "gather1"
+      (is (= (list (list "p" "q" "r" "s") (list "-p" "-q") (list "x" "y")) (gather (condense-ors ex13)))))))

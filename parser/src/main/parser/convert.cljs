@@ -38,7 +38,6 @@
       tree)
     nil))
   
-; move level down when and-sym or or-sym with no and-sym(s)
 (defn distribute [tree]
   (if tree
     (if (is-op? tree)
@@ -48,14 +47,31 @@
             (if (= index 1)
               (list and-sym (distribute (list or-sym (second tree) (second (third tree)))) (distribute (list or-sym (second tree) (third (third tree)))))
               (list and-sym (distribute (list or-sym (second (second tree)) (third tree))) (distribute (list or-sym (third (second tree)) (third tree)))))
-            tree)
-          )
+            tree))
+          
         (if (= (first tree) not-sym)
           (list not-sym (distribute (second tree)))
           (list and-sym (distribute (second tree)) (distribute (third tree)))))
       tree)
     nil))
 
+; precond: in cnf form
+(defn condense-ors [tree]
+  (if tree
+    (if (is-op? tree)
+      (if (= (first tree) or-sym)
+        (concat (condense-ors (second tree)) (concat (condense-ors (third tree))))
+        (if (= (first tree) not-sym)
+          (list (str "-" (second tree)))
+          (list and-sym (condense-ors (second tree)) (condense-ors (third tree)))))
+      (list tree))
+    nil))
+
+(defn gather [tree]
+  (if (= (first tree) and-sym)
+    (concat (gather (second tree)) (gather (third tree)))
+    (list tree)))
+
 
 (defn cnf [tree]
-  (distribute (negation-normal (remove-implies tree))))
+  (gather (condense-ors (distribute (negation-normal (remove-implies tree))))))
